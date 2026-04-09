@@ -138,3 +138,97 @@ public class SimpleFCFS {
         }
     }
 }
+
+
+import org.cloudbus.cloudsim.*;
+import org.cloudbus.cloudsim.core.CloudSim;
+import org.cloudbus.cloudsim.provisioners.*;
+import java.util.*;
+
+public class CloudSimExample1 {
+
+    public static void main(String[] args) {
+        try {
+            // Step 1: Initialize CloudSim
+            CloudSim.init(1, Calendar.getInstance(), false);
+
+            // Step 2: Create Datacenter
+            Datacenter datacenter = createDatacenter("Datacenter_0");
+
+            // Step 3: Create Broker
+            DatacenterBroker broker = new DatacenterBroker("Broker");
+            int brokerId = broker.getId();
+
+            // Step 4: Create VM
+            Vm vm = new Vm(0, brokerId, 1000, 1, 512, 1000, 10000,
+                    "Xen", new CloudletSchedulerTimeShared());
+
+            List<Vm> vmlist = new ArrayList<>();
+            vmlist.add(vm);
+            broker.submitVmList(vmlist);
+
+            // Step 5: Create ONE Cloudlet
+            UtilizationModel model = new UtilizationModelFull();
+
+            Cloudlet cloudlet = new Cloudlet(
+                    0,          // id
+                    400000,     // length (IMPORTANT → gives ~400 time)
+                    1,          // CPU cores
+                    300, 300,   // file size, output size
+                    model, model, model
+            );
+
+            cloudlet.setUserId(brokerId);
+
+            List<Cloudlet> list = new ArrayList<>();
+            list.add(cloudlet);
+            broker.submitCloudletList(list);
+
+            // Step 6: Start Simulation
+            CloudSim.startSimulation();
+            List<Cloudlet> result = broker.getCloudletReceivedList();
+            CloudSim.stopSimulation();
+
+            // Step 7: Print Output
+            System.out.println("========== OUTPUT ==========");
+            System.out.println("Cloudlet ID | STATUS | Finish Time");
+
+            for (Cloudlet c : result) {
+                System.out.println(c.getCloudletId() + " | SUCCESS | " + c.getFinishTime());
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Datacenter creation
+    private static Datacenter createDatacenter(String name) {
+        List<Host> hostList = new ArrayList<>();
+
+        List<Pe> peList = new ArrayList<>();
+        peList.add(new Pe(0, new PeProvisionerSimple(1000)));
+
+        hostList.add(new Host(
+                0,
+                new RamProvisionerSimple(2048),
+                new BwProvisionerSimple(10000),
+                1000000,
+                peList,
+                new VmSchedulerTimeShared(peList)
+        ));
+
+        DatacenterCharacteristics characteristics = new DatacenterCharacteristics(
+                "x86", "Linux", "Xen", hostList,
+                10.0, 3.0, 0.05, 0.1, 0.1
+        );
+
+        try {
+            return new Datacenter(name, characteristics,
+                    new VmAllocationPolicySimple(hostList),
+                    new LinkedList<>(), 0);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+}
