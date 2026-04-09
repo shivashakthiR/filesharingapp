@@ -86,3 +86,55 @@ public class FCFS {
     }
 }
 
+import org.cloudbus.cloudsim.*;
+import org.cloudbus.cloudsim.core.CloudSim;
+import java.util.*;
+
+public class SimpleFCFS {
+    public static void main(String[] args) {
+        try {
+            // Step 1: Initialize CloudSim
+            CloudSim.init(1, Calendar.getInstance(), false);
+
+            // Step 2: Create Broker
+            DatacenterBroker broker = new DatacenterBroker("Broker");
+            int brokerId = broker.getId();
+
+            // Step 3: Create VM
+            Vm vm = new Vm(0, brokerId, 1000, 1, 512, 1000, 10000,
+                    "Xen", new CloudletSchedulerSpaceShared());
+
+            List<Vm> vmlist = new ArrayList<>();
+            vmlist.add(vm);
+            broker.submitVmList(vmlist);
+
+            // Step 4: Create Cloudlets (Tasks)
+            UtilizationModel model = new UtilizationModelFull();
+
+            Cloudlet c1 = new Cloudlet(0, 40000, 1, 300, 300, model, model, model);
+            Cloudlet c2 = new Cloudlet(1, 10000, 1, 300, 300, model, model, model);
+
+            c1.setUserId(brokerId);
+            c2.setUserId(brokerId);
+
+            List<Cloudlet> list = new ArrayList<>();
+            list.add(c1);
+            list.add(c2);
+            broker.submitCloudletList(list);
+
+            // Step 5: Start Simulation
+            CloudSim.startSimulation();
+            List<Cloudlet> result = broker.getCloudletReceivedList();
+            CloudSim.stopSimulation();
+
+            // Step 6: Print Output
+            for (Cloudlet c : result) {
+                System.out.println("Cloudlet " + c.getCloudletId() +
+                        " finished at time " + c.getFinishTime());
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
